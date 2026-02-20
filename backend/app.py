@@ -1,6 +1,6 @@
 import os
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from core.agent import InvoiceAssistantChatbot
 
@@ -74,6 +74,47 @@ def get_invoice(invoice_id):
         return jsonify({"error": "Invoice not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/stream-chat', methods=['POST'])
+def stream_chat():
+    try:
+        data = request.json or {}
+        user_message = data.get('message')
+        session_id = data.get('session_id', 'default')
+
+        if not user_message:
+            return jsonify({"error": "Message is required"}), 400
+
+        def generate():
+            try:
+                # Process the message and stream the response
+                response = chatbot.process_message(user_message, session_id)
+
+                # Stream the response in chunks
+                full_response = response["response"] if isinstance(
+                    response, dict) else str(response)
+
+                # Simulate streaming by sending response in chunks
+                chunk_size = 10  # characters per chunk
+                for i in range(0, len(full_response), chunk_size):
+                    chunk = full_response[i:i+chunk_size]
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+
+                # Send the complete response at the end
+                yield f"data: {json.dumps({'complete_response': response, 'done': True})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+        return Response(generate(), mimetype='text/plain')
+
+    except Exception as e:
+        print(f"Error processing stream message: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "details": str(e),
+            "hint": "Check if GOOGLE_API_KEY is set in environment variables"
+        }), 500
 
 
 if __name__ == '__main__':

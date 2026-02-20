@@ -44,23 +44,95 @@ const App = () => {
     setIsTyping(true);
 
     try {
-      const response = await fetch('/api/chat', {
+      // Use streaming endpoint
+      const response = await fetch('/api/stream-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messageText }),
+        body: JSON.stringify({ 
+          message: messageText,
+          session_id: 'default' // In a real app, you'd use a unique session ID
+        }),
       });
 
-      const data = await response.json();
-      setIsTyping(false);
-
-      if (data.error) {
-        addBotMessage('⚠️ Sorry, I encountered an error. Please try again.', 'error');
-      } else {
-        addBotMessage(data.response, data.type, data.saved_invoice_id);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      
+      // Create a temporary bot message for streaming
+      const botMessageId = Date.now();
+      const initialBotMessage = {
+        id: botMessageId,
+        text: '',
+        sender: 'bot',
+        type: 'info',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, initialBotMessage]);
+      
+      let streamedText = '';
+      let completeResponse = null;
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.substring(6)); // Remove 'data: ' prefix
+              
+              if (data.chunk !== undefined) {
+                streamedText += data.chunk;
+                // Update the bot message with the streamed text
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.id === botMessageId ? { ...msg, text: streamedText } : msg
+                  )
+                );
+              } else if (data.complete_response) {
+                completeResponse = data.complete_response;
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+      
+      setIsTyping(false);
+      
+      // Update the message with the complete response data
+      if (completeResponse) {
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === botMessageId 
+              ? { 
+                  ...msg, 
+                  text: completeResponse.response || streamedText,
+                  type: completeResponse.type || 'info',
+                  invoiceId: completeResponse.saved_invoice_id
+                } 
+              : msg
+          )
+        );
+      }
+      
     } catch (error) {
       setIsTyping(false);
-      addBotMessage('⚠️ Server connection failed. Is the backend running?', 'error');
+      // Update the temporary message with error
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === botMessageId 
+            ? { ...msg, text: '⚠️ Server connection failed. Is the backend running?', type: 'error' } 
+            : msg
+        )
+      );
     }
   };
 

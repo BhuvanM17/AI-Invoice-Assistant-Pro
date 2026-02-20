@@ -1,9 +1,12 @@
 import os
+from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
+
+from ..core.models import InvoiceSchema
 
 
 def create_bizzhub_pdf_once():
@@ -42,7 +45,8 @@ def create_bizzhub_pdf_once():
     content = []
 
     # Title
-    content.append(Paragraph("BizzHub Workspaces - Complete Information", title_style))
+    content.append(
+        Paragraph("BizzHub Workspaces - Complete Information", title_style))
     content.append(Spacer(1, 20))
 
     # Company Overview
@@ -69,16 +73,24 @@ def create_bizzhub_pdf_once():
     content.append(Paragraph("Services & Amenities", heading_style))
     services = [
         ["Service", "Description", "Availability", "Price Range"],
-        ["Co-Working (Hot Desk)", "Flexible seating, community area", "All centers", "₹8,000 - ₹12,000/month"],
-        ["Dedicated Desk", "Personal desk, 24/7 access", "All centers", "₹10,000 - ₹15,000/month"],
-        ["Private Cabin (2-4p)", "Lockable private office", "Koramangala, Whitefield", "₹25,000 - ₹40,000/month"],
-        ["Team Suite (5-10p)", "Custom layout, meeting room", "All centers", "₹60,000 - ₹90,000/month"],
-        ["Virtual Office", "Business address, mail handling", "All centers", "₹2,000 - ₹5,000/month"],
-        ["Meeting Room (Hourly)", "Fully equipped, projector", "All centers", "₹500 - ₹1,500/hour"],
-        ["Day Pass", "Daily access, basic amenities", "All centers", "₹800 - ₹1,200/day"]
+        ["Co-Working (Hot Desk)", "Flexible seating, community area",
+         "All centers", "₹8,000 - ₹12,000/month"],
+        ["Dedicated Desk", "Personal desk, 24/7 access",
+            "All centers", "₹10,000 - ₹15,000/month"],
+        ["Private Cabin (2-4p)", "Lockable private office",
+         "Koramangala, Whitefield", "₹25,000 - ₹40,000/month"],
+        ["Team Suite (5-10p)", "Custom layout, meeting room",
+         "All centers", "₹60,000 - ₹90,000/month"],
+        ["Virtual Office", "Business address, mail handling",
+            "All centers", "₹2,000 - ₹5,000/month"],
+        ["Meeting Room (Hourly)", "Fully equipped, projector",
+         "All centers", "₹500 - ₹1,500/hour"],
+        ["Day Pass", "Daily access, basic amenities",
+            "All centers", "₹800 - ₹1,200/day"]
     ]
 
-    services_table = Table(services, colWidths=[1.8 * inch, 2.5 * inch, 1.2 * inch, 1.5 * inch])
+    services_table = Table(services, colWidths=[
+                           1.8 * inch, 2.5 * inch, 1.2 * inch, 1.5 * inch])
     services_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3498db')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -96,14 +108,20 @@ def create_bizzhub_pdf_once():
     content.append(Paragraph("Bangalore Locations", heading_style))
     locations = [
         ["Center", "Address", "Contact", "Features", "Parking"],
-        ["Koramangala Hub", "3rd Block, 80ft Road", "080-4111-2222", "24/7, Cafe, Gym", "Yes (₹1000/month)"],
-        ["Whitefield Tech Park", "ITPL Main Road", "080-4111-3333", "EV Charging, Events", "Yes (₹1500/month)"],
-        ["Electronic City", "Phase 1, Near Infosys", "080-4111-4444", "Shuttle, Food Court", "Yes (₹800/month)"],
-        ["Indiranagar", "100ft Road, Double Road", "080-4111-5555", "Lounge, Terrace", "Limited (₹1200/month)"],
-        ["MG Road", "Brigade Road Cross", "080-4111-6666", "Premium, Concierge", "Valet (₹2000/month)"]
+        ["Koramangala Hub", "3rd Block, 80ft Road", "080-4111-2222",
+            "24/7, Cafe, Gym", "Yes (₹1000/month)"],
+        ["Whitefield Tech Park", "ITPL Main Road", "080-4111-3333",
+            "EV Charging, Events", "Yes (₹1500/month)"],
+        ["Electronic City", "Phase 1, Near Infosys", "080-4111-4444",
+            "Shuttle, Food Court", "Yes (₹800/month)"],
+        ["Indiranagar", "100ft Road, Double Road", "080-4111-5555",
+            "Lounge, Terrace", "Limited (₹1200/month)"],
+        ["MG Road", "Brigade Road Cross", "080-4111-6666",
+            "Premium, Concierge", "Valet (₹2000/month)"]
     ]
 
-    loc_table = Table(locations, colWidths=[1.5 * inch, 2 * inch, 1.2 * inch, 1.8 * inch, 1.2 * inch])
+    loc_table = Table(locations, colWidths=[
+                      1.5 * inch, 2 * inch, 1.2 * inch, 1.8 * inch, 1.2 * inch])
     loc_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2ecc71')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -179,8 +197,10 @@ def create_bizzhub_pdf_once():
 
     # Build PDF
     doc.build(content)
-    print(f"✅ PDF created: {pdf_filename} ({os.path.getsize(pdf_filename)} bytes)")
+    print(
+        f"✅ PDF created: {pdf_filename} ({os.path.getsize(pdf_filename)} bytes)")
     return pdf_filename
+
 
 if __name__ == "__main__":
     create_bizzhub_pdf_once()

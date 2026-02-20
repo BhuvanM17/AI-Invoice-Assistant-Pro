@@ -3,3 +3,8 @@ flask-cors
 google-generativeai
 python-dotenv
 pytest
+pydantic>=2.0
+requests
+scikit-learn
+numpy
+openai
