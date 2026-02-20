@@ -10,16 +10,30 @@ from backend.core.agent import InvoiceAssistantChatbot
 
 app = Flask(__name__)
 CORS(app)
-chatbot = InvoiceAssistantChatbot()
 
+# Initialize chatbot with error handling
+try:
+    chatbot = InvoiceAssistantChatbot()
+    print("✅ Chatbot initialized successfully")
+except Exception as e:
+    print(f"❌ Error initializing chatbot: {e}")
+    chatbot = None
 
 @app.get('/api/health')
 def health_check():
-    return jsonify({"status": "healthy", "service": "AI-Powered E-Commerce Invoice Assistant API"})
+    return jsonify({
+        "status": "healthy" if chatbot else "degraded",
+        "service": "AI-Powered E-Commerce Invoice Assistant API",
+        "vercel": bool(os.environ.get("VERCEL")),
+        "ai_ready": bool(os.environ.get("GOOGLE_API_KEY"))
+    })
 
 
 @app.post('/api/chat')
 def chat():
+    if not chatbot:
+        return jsonify({"error": "Chatbot not initialized. Check server logs."}), 500
+        
     data = request.get_json(silent=True) or {}
     user_message = data.get('message', '').strip()
 
@@ -35,4 +49,9 @@ def chat():
             "status": "success"
         })
     except Exception as error:
-        return jsonify({"error": "Internal server error", "details": str(error)}), 500
+        print(f"Chat error: {error}")
+        return jsonify({
+            "error": "Internal server error", 
+            "details": str(error),
+            "hint": "Ensure GOOGLE_API_KEY is configured in Vercel environment variables"
+        }), 500

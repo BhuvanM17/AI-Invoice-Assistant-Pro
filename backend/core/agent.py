@@ -64,6 +64,12 @@ class SessionManager:
 class InvoiceStorage:
     def __init__(self, storage_path: str):
         self.storage_path = storage_path
+        # Vercel compatibility: Use /tmp if running on Vercel to avoid read-only filesystem errors
+        if os.environ.get("VERCEL"):
+            tmp_path = os.path.join("/tmp", "invoices.json")
+            print(f"📡 Vercel detected. Redirecting storage to: {tmp_path}")
+            self.storage_path = tmp_path
+            
         os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
 
     def _load_invoices(self) -> List[Dict[str, Any]]:
