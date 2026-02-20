@@ -149,6 +149,18 @@ class InvoiceAssistantChatbot:
     def process_message(self, user_message: str) -> str:
         message = user_message.lower()
 
+        if any(keyword in message for keyword in ["validate", "check fields", "missing fields"]):
+            draft = self.parser.parse(user_message)
+            missing = self.engine.validate(draft)
+            if not missing:
+                return "✅ Your invoice input looks complete and ready for generation."
+            return (
+                "⚠️ Validation result: missing required details -> "
+                + ", ".join(missing)
+                + "\n"
+                + "\n".join(f"• {tip}" for tip in self.engine.suggestions(missing))
+            )
+
         if any(keyword in message for keyword in ["create invoice", "generate invoice", "invoice"]):
             draft = self.parser.parse(user_message)
             missing = self.engine.validate(draft)
@@ -163,18 +175,6 @@ class InvoiceAssistantChatbot:
                 )
 
             return self.engine.render_invoice(draft)
-
-        if any(keyword in message for keyword in ["validate", "check fields", "missing fields"]):
-            draft = self.parser.parse(user_message)
-            missing = self.engine.validate(draft)
-            if not missing:
-                return "✅ Your invoice input looks complete and ready for generation."
-            return (
-                "⚠️ Validation result: missing required details -> "
-                + ", ".join(missing)
-                + "\n"
-                + "\n".join(f"• {tip}" for tip in self.engine.suggestions(missing))
-            )
 
         return (
             "Hi! I'm your **AI-Powered E-Commerce Invoice Assistant**.\n\n"
