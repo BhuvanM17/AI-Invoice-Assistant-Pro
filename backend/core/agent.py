@@ -5,14 +5,18 @@ import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
+import warnings
 import google.generativeai as genai
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
-from .models import InvoiceSchema, InvoiceItem, ConversationHistory, ConversationMessage
-from ..scripts.generate_invoice_pdf import create_invoice_pdf
-from .rag_system import get_faq_answer
-from .llm_manager import generate_with_fallback
+from backend.core.models import InvoiceSchema, InvoiceItem, ConversationHistory, ConversationMessage
+
+from backend.core.rag_system import get_faq_answer
+from backend.core.llm_manager import generate_with_fallback
+
+# Suppress the deprecation warning for google.generativeai
+warnings.filterwarnings("ignore", message=".*google.generativeai.*")
 
 load_dotenv()
 
@@ -190,6 +194,13 @@ class InvoiceStorage:
 
         # Generate PDF for the invoice
         try:
+            # Dynamically import the PDF function to avoid circular import issues
+            import sys
+            import os
+            sys.path.append(os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__))))
+            from scripts.generate_invoice_pdf import create_invoice_pdf
+
             pdf_path = create_invoice_pdf(
                 invoice_data,
                 f"invoice_{draft.invoice_number or draft.invoice_id[:8]}.pdf"
@@ -364,14 +375,22 @@ class InvoiceEngine:
     REQUIRED_FIELDS = ["customer_name", "customer_email"]
 
     def validate(self, draft: InvoiceDraft) -> List[str]:
+        import re
         missing = []
         if not draft.customer_name:
             missing.append("customer_name")
         if not draft.customer_email:
             missing.append("customer_email")
+        elif not self.is_valid_email(draft.customer_email):
+            missing.append("invalid_email")
         if not draft.items:
             missing.append("items")
         return missing
+
+    def is_valid_email(self, email: str) -> bool:
+        """Validate email format with regex"""
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return re.match(email_regex, email) is not None
 
     def suggestions(self, draft: InvoiceDraft) -> List[str]:
         tips = []
@@ -379,6 +398,9 @@ class InvoiceEngine:
             tips.append("What is the customer's name?")
         if not draft.customer_email:
             tips.append("Could you provide their email address?")
+        elif not self.is_valid_email(draft.customer_email):
+            tips.append(
+                "The email address format is invalid. Please provide a valid email.")
         if not draft.customer_gst:
             tips.append(
                 "Do you have a GST number to include? (Optional but recommended)")
@@ -437,12 +459,23 @@ class InvoiceAssistantChatbot:
             missing = self.engine.validate(draft)
 
             if missing:
+                # Check if the only issue is invalid email
+                has_invalid_email_only = len(
+                    missing) == 1 and "invalid_email" in missing
+
                 suggestions = self.engine.suggestions(draft)
-                text = (
-                    "I've updated your draft, but I'm still missing some details:\n\n"
-                    + "\n".join(f"• {tip}" for tip in suggestions)
-                    + "\n\nJust type them in and I'll update the bill!"
-                )
+                if has_invalid_email_only:
+                    text = (
+                        "I noticed an issue with your email address:\n\n"
+                        + "\n".join(f"• {tip}" for tip in suggestions)
+                        + "\n\nPlease provide a valid email address."
+                    )
+                else:
+                    text = (
+                        "I've updated your draft, but I'm still missing some details:\n\n"
+                        + "\n".join(f"• {tip}" for tip in suggestions)
+                        + "\n\nJust type them in and I'll update the bill!"
+                    )
                 # Add bot response to conversation history
                 bot_msg = ConversationMessage(
                     text=text, sender='bot', type="warning")

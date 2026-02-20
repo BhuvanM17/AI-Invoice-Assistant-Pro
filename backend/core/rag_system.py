@@ -7,6 +7,10 @@ import google.generativeai as genai
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
+import warnings
+
+# Suppress the deprecation warning for google.generativeai
+warnings.filterwarnings("ignore", message=".*google.generativeai.*")
 
 
 @dataclass

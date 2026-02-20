@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Any, Callable
 from enum import Enum
 import requests
 import openai
-from .currency_converter import convert_currency
+from backend.core.currency_converter import convert_currency
 
 
 class LLMProvider(Enum):
@@ -64,7 +64,8 @@ class LLMManager:
         if gemini_api_key:
             genai.configure(api_key=gemini_api_key)
             self.providers[LLMProvider.GEMINI] = genai.GenerativeModel(
-                "gemini-pro")
+                "gemini-2.5-flash"
+            )
             self.active_provider = LLMProvider.GEMINI
 
         # Setup OpenAI

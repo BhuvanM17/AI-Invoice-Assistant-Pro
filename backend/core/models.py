@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
+import re
 from typing import List, Optional
 from datetime import datetime
 from dataclasses import dataclass, asdict
@@ -20,7 +21,7 @@ class InvoiceSchema(BaseModel):
     invoice_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     invoice_number: Optional[str] = Field(None, description="Invoice number")
     customer_name: str = Field(..., min_length=1, description="Customer name")
-    customer_email: EmailStr = Field(..., description="Customer email address")
+    customer_email: str = Field(..., description="Customer email address")
     customer_gst: Optional[str] = Field(
         None, description="Customer GST number")
     invoice_date: Optional[str] = Field(None, description="Invoice date")
