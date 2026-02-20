@@ -44,6 +44,7 @@ Open `frontend/index.html` in a browser (or serve it using any static server).
 3. Vercel will auto-detect `vercel.json` and deploy:
    - Static frontend from `frontend/`
    - Python API from `api/app.py` (`/api/chat`, `/api/health`)
+   - Python dependencies from `api/requirements.txt`
 4. After deploy, open your Vercel URL and chat with the assistant.
 
 > Frontend uses `http://localhost:5000/chat` in local mode and automatically switches to `/api/chat` in production.
